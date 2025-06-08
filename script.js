@@ -15,11 +15,11 @@ class FPSGame {
         this.targets = [];
         this.bullets = [];
         this.isJumping = false;
-        this.jumpHeight = 2;
-        this.jumpSpeed = 0.1;
-        this.gravity = 0.05;
-        this.velocityY = 0;
-        this.originalY = 2; // Initial camera height
+        this.jumpHeight = 2; // Maximum height the player can jump
+        this.jumpForce = 0.3; // Initial upward force of the jump
+        this.gravity = 0.01; // Strength of gravity
+        this.velocityY = 0; // Current vertical velocity
+        this.groundY = 2; // Y-position of the ground
 
         // Movement
         this.moveForward = false;
@@ -320,25 +320,7 @@ class FPSGame {
     startJump() {
         if (!this.isJumping) {
             this.isJumping = true;
-            this.velocityY = this.jumpSpeed;
-            this.jump();
-        }
-    }
-
-    jump() {
-        if (this.isJumping) {
-            // Apply gravity
-            this.velocityY -= this.gravity;
-            this.camera.position.y += this.velocityY;
-
-            // Check if player has landed
-            if (this.camera.position.y <= this.originalY) {
-                this.camera.position.y = this.originalY;
-                this.velocityY = 0;
-                this.isJumping = false;
-            } else {
-                requestAnimationFrame(() => this.jump());
-            }
+            this.velocityY = this.jumpForce;
         }
     }
 
@@ -385,17 +367,56 @@ class FPSGame {
 
             this.controls.moveRight(this.velocity.x * delta);
             this.controls.moveForward(this.velocity.z * delta);
+
+            // Apply jump and gravity
+            if (this.isJumping || this.camera.position.y > this.groundY) {
+                this.velocityY -= this.gravity; // Apply gravity
+                this.camera.position.y += this.velocityY; // Apply velocity
+
+                if (this.camera.position.y < this.groundY) {
+                    this.camera.position.y = this.groundY; // Land on ground
+                    this.velocityY = 0;
+                    this.isJumping = false;
+                }
+            }
         }
 
-        // Update bullets
+        // Update bullets and check collisions
         this.bullets.forEach((bullet, index) => {
             bullet.position.add(bullet.velocity.clone().multiplyScalar(delta));
             
+            // Check for target hits within animate loop
+            for (let j = this.targets.length - 1; j >= 0; j--) {
+                const target = this.targets[j];
+                if (bullet.position.distanceTo(target.position) < 1) {
+                    // Hit target
+                    this.scene.remove(target);
+                    this.targets.splice(j, 1);
+                    this.score += 10;
+                    this.updateUI();
+
+                    // Play hit sound
+                    const hitSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+                    hitSound.volume = 0.3;
+                    hitSound.play();
+
+                    // Remove bullet
+                    this.scene.remove(bullet);
+                    this.bullets.splice(index, 1);
+                    return; // Exit inner loop to prevent issues with splice and continue outer loop
+                }
+            }
+
+            // Remove bullets that are too far
             if (bullet.position.distanceTo(this.camera.position) > 100) {
                 this.scene.remove(bullet);
                 this.bullets.splice(index, 1);
             }
         });
+
+        if (this.targets.length === 0) {
+            this.gameOver(true);
+        }
 
         this.prevTime = time;
         this.renderer.render(this.scene, this.camera);
