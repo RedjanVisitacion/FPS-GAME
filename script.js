@@ -3,8 +3,9 @@ class FPSGame {
         // Three.js setup
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer();
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
         document.getElementById('game-container').appendChild(this.renderer.domElement);
 
         // Game state
@@ -48,18 +49,26 @@ class FPSGame {
 
         // Load sounds
         const audioLoader = new THREE.AudioLoader();
+        
+        // Gunshot sound
         audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/GUNSHOT.MP3', (buffer) => {
             this.sounds.shoot.setBuffer(buffer);
             this.sounds.shoot.setVolume(0.5);
         });
+
+        // Hit sound
         audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/HIT.MP3', (buffer) => {
             this.sounds.hit.setBuffer(buffer);
             this.sounds.hit.setVolume(0.5);
         });
+
+        // Reload sound
         audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/RELOAD.MP3', (buffer) => {
             this.sounds.reload.setBuffer(buffer);
             this.sounds.reload.setVolume(0.5);
         });
+
+        // Empty gun sound
         audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/EMPTY.MP3', (buffer) => {
             this.sounds.empty.setBuffer(buffer);
             this.sounds.empty.setVolume(0.5);
@@ -77,25 +86,36 @@ class FPSGame {
             this.setupMobileControls();
         }
 
+        // Add particle system for effects
+        this.particles = [];
+        this.muzzleFlash = null;
+        this.setupParticleSystem();
+
         // Start game loop
         this.animate();
     }
 
     setupScene() {
         // Add ambient light
-        const ambientLight = new THREE.AmbientLight(0x404040);
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
         this.scene.add(ambientLight);
 
         // Add directional light
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(0, 1, 0);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(0, 10, 0);
+        directionalLight.castShadow = true;
         this.scene.add(directionalLight);
 
         // Create floor
         const floorGeometry = new THREE.PlaneGeometry(100, 100);
-        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x808080,
+            roughness: 0.8,
+            metalness: 0.2
+        });
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
         this.scene.add(floor);
 
         // Create walls
@@ -106,7 +126,11 @@ class FPSGame {
     }
 
     createWalls() {
-        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+        const wallMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x808080,
+            roughness: 0.7,
+            metalness: 0.2
+        });
         const wallGeometry = new THREE.BoxGeometry(100, 10, 1);
 
         // Create four walls
@@ -121,6 +145,8 @@ class FPSGame {
             const mesh = new THREE.Mesh(wallGeometry, wallMaterial);
             mesh.position.set(...wall.position);
             mesh.rotation.set(...wall.rotation);
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
             this.scene.add(mesh);
         });
     }
@@ -194,6 +220,11 @@ class FPSGame {
         document.getElementById('restart-btn').addEventListener('click', () => {
             location.reload();
         });
+
+        // Mobile start button
+        document.getElementById('mobile-start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').classList.add('hidden');
+        });
     }
 
     setupMobileControls() {
@@ -221,39 +252,184 @@ class FPSGame {
     }
 
     createTargets() {
-        const targetGeometry = new THREE.BoxGeometry(2, 2, 2);
-        const targetMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        // Create a simple enemy model using basic shapes
+        const createEnemy = () => {
+            const group = new THREE.Group();
 
+            // Body
+            const bodyGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1.5, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1;
+            body.castShadow = true;
+            group.add(body);
+
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+            const headMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 2;
+            head.castShadow = true;
+            group.add(head);
+
+            // Arms
+            const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
+            const armMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.7, 1, 0);
+            leftArm.rotation.z = Math.PI / 4;
+            leftArm.castShadow = true;
+            group.add(leftArm);
+
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.7, 1, 0);
+            rightArm.rotation.z = -Math.PI / 4;
+            rightArm.castShadow = true;
+            group.add(rightArm);
+
+            return group;
+        };
+
+        // Create 10 enemies
         for (let i = 0; i < 10; i++) {
-            const target = new THREE.Mesh(targetGeometry, targetMaterial);
-            target.position.set(
+            const enemy = createEnemy();
+            enemy.position.set(
                 Math.random() * 80 - 40,
-                2,
+                0,
                 Math.random() * 80 - 40
             );
-            this.scene.add(target);
-            this.targets.push(target);
+            enemy.rotation.y = Math.random() * Math.PI * 2;
+            this.scene.add(enemy);
+            this.targets.push(enemy);
+        }
+    }
+
+    setupParticleSystem() {
+        // Create muzzle flash light
+        const muzzleLight = new THREE.PointLight(0xffaa00, 1, 10);
+        muzzleLight.visible = false;
+        this.camera.add(muzzleLight);
+        this.muzzleFlash = muzzleLight;
+    }
+
+    createMuzzleFlash() {
+        if (this.muzzleFlash) {
+            this.muzzleFlash.visible = true;
+            this.muzzleFlash.intensity = 2;
+            
+            // Create flash geometry
+            const flashGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const flashMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffaa00,
+                transparent: true,
+                opacity: 0.8
+            });
+            const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+            this.camera.add(flash);
+
+            // Animate flash
+            const animateFlash = () => {
+                flash.scale.x += 0.2;
+                flash.scale.y += 0.2;
+                flash.scale.z += 0.2;
+                flash.material.opacity -= 0.1;
+
+                if (flash.material.opacity <= 0) {
+                    this.camera.remove(flash);
+                    this.muzzleFlash.visible = false;
+                    return;
+                }
+                requestAnimationFrame(animateFlash);
+            };
+            animateFlash();
+        }
+    }
+
+    createBulletTrail(start, end) {
+        const points = [];
+        points.push(start);
+        points.push(end);
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+            color: 0xffff00,
+            transparent: true,
+            opacity: 0.5
+        });
+
+        const line = new THREE.Line(geometry, material);
+        this.scene.add(line);
+
+        // Animate trail
+        const animateTrail = () => {
+            material.opacity -= 0.1;
+            if (material.opacity <= 0) {
+                this.scene.remove(line);
+                return;
+            }
+            requestAnimationFrame(animateTrail);
+        };
+        animateTrail();
+    }
+
+    createImpactEffect(position) {
+        // Create impact particles
+        for (let i = 0; i < 10; i++) {
+            const particleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const particleMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.8
+            });
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            
+            particle.position.copy(position);
+            particle.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.2,
+                Math.random() * 0.2,
+                (Math.random() - 0.5) * 0.2
+            );
+            
+            this.scene.add(particle);
+            this.particles.push(particle);
         }
     }
 
     shoot() {
         if (this.ammo <= 0) {
+            if (this.sounds.empty.isPlaying) {
+                this.sounds.empty.stop();
+            }
             this.sounds.empty.play();
             return;
         }
 
-        // Create a new audio instance for each shot to allow rapid-fire
-        const shootSound = new THREE.Audio(this.listener);
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/GUNSHOT.MP3', (buffer) => {
-            shootSound.setBuffer(buffer);
-            shootSound.setVolume(0.5);
-            shootSound.play();
-        });
-
         this.ammo--;
         this.updateUI();
 
+        // Play gunshot sound
+        if (this.sounds.shoot.isPlaying) {
+            this.sounds.shoot.stop();
+        }
+        this.sounds.shoot.play();
+
+        // Create muzzle flash
+        this.createMuzzleFlash();
+
+        // Create bullet
         const bulletGeometry = new THREE.SphereGeometry(0.1);
         const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
@@ -266,20 +442,27 @@ class FPSGame {
         this.scene.add(bullet);
         this.bullets.push(bullet);
 
-        // Check for hits
-        this.checkBulletHits(bullet);
+        // Create bullet trail
+        const bulletEnd = bullet.position.clone().add(bullet.velocity.clone().multiplyScalar(0.1));
+        this.createBulletTrail(bullet.position.clone(), bulletEnd);
     }
 
     checkBulletHits(bullet) {
         const bulletPosition = bullet.position.clone();
-        const bulletDirection = bullet.velocity.clone().normalize();
 
         this.targets.forEach((target, index) => {
             const targetPosition = target.position.clone();
             const distance = bulletPosition.distanceTo(targetPosition);
 
             if (distance < 2) {
+                // Play hit sound
+                if (this.sounds.hit.isPlaying) {
+                    this.sounds.hit.stop();
+                }
                 this.sounds.hit.play();
+
+                // Create impact effect
+                this.createImpactEffect(bulletPosition);
                 this.scene.remove(target);
                 this.targets.splice(index, 1);
                 this.score += 10;
@@ -296,6 +479,11 @@ class FPSGame {
         if (this.ammo < 30) {
             this.ammo = 30;
             this.updateUI();
+            
+            // Play reload sound
+            if (this.sounds.reload.isPlaying) {
+                this.sounds.reload.stop();
+            }
             this.sounds.reload.play();
         }
     }
@@ -308,7 +496,9 @@ class FPSGame {
 
     gameOver(isWin = false) {
         this.isGameOver = true;
-        this.controls.unlock();
+        if (this.controls) {
+            this.controls.unlock();
+        }
         document.getElementById('game-over').classList.remove('hidden');
         document.getElementById('final-score').textContent = this.score;
         
@@ -330,6 +520,18 @@ class FPSGame {
         const time = performance.now();
         const delta = (time - this.prevTime) / 1000;
 
+        // Update particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            particle.position.add(particle.velocity);
+            particle.material.opacity -= 0.02;
+
+            if (particle.material.opacity <= 0) {
+                this.scene.remove(particle);
+                this.particles.splice(i, 1);
+            }
+        }
+
         if (this.isMobile) {
             // Handle mobile movement
             if (this.movementJoystick) {
@@ -349,7 +551,7 @@ class FPSGame {
             // Apply movement
             this.camera.position.x += this.velocity.x * delta;
             this.camera.position.z += this.velocity.z * delta;
-        } else if (this.controls.isLocked) {
+        } else {
             // Desktop movement
             this.velocity.x = 0;
             this.velocity.z = 0;
@@ -365,67 +567,61 @@ class FPSGame {
                 this.velocity.x = this.direction.x * this.moveSpeed;
             }
 
-            this.controls.moveRight(this.velocity.x * delta);
-            this.controls.moveForward(this.velocity.z * delta);
-
-            // Apply jump and gravity
-            if (this.isJumping || this.camera.position.y > this.groundY) {
-                this.velocityY -= this.gravity; // Apply gravity
-                this.camera.position.y += this.velocityY; // Apply velocity
-
-                if (this.camera.position.y < this.groundY) {
-                    this.camera.position.y = this.groundY; // Land on ground
-                    this.velocityY = 0;
-                    this.isJumping = false;
-                }
+            if (this.controls) {
+                this.controls.moveRight(this.velocity.x * delta);
+                this.controls.moveForward(this.velocity.z * delta);
             }
-
-            // Wall collision detection
-            const playerX = this.camera.position.x;
-            const playerZ = this.camera.position.z;
-            const wallLimit = 49; // Slightly less than 50 to prevent passing through
-
-            if (playerX > wallLimit) this.camera.position.x = wallLimit;
-            if (playerX < -wallLimit) this.camera.position.x = -wallLimit;
-            if (playerZ > wallLimit) this.camera.position.z = wallLimit;
-            if (playerZ < -wallLimit) this.camera.position.z = -wallLimit;
         }
 
+        // Apply jump and gravity
+        if (this.isJumping || this.camera.position.y > this.groundY) {
+            this.velocityY -= this.gravity;
+            this.camera.position.y += this.velocityY;
+
+            if (this.camera.position.y < this.groundY) {
+                this.camera.position.y = this.groundY;
+                this.velocityY = 0;
+                this.isJumping = false;
+            }
+        }
+
+        // Wall collision detection
+        const playerX = this.camera.position.x;
+        const playerZ = this.camera.position.z;
+        const wallLimit = 49;
+
+        if (playerX > wallLimit) this.camera.position.x = wallLimit;
+        if (playerX < -wallLimit) this.camera.position.x = -wallLimit;
+        if (playerZ > wallLimit) this.camera.position.z = wallLimit;
+        if (playerZ < -wallLimit) this.camera.position.z = -wallLimit;
+
         // Update bullets and check collisions
-        this.bullets.forEach((bullet, index) => {
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const bullet = this.bullets[i];
             bullet.position.add(bullet.velocity.clone().multiplyScalar(delta));
             
-            // Check for target hits within animate loop
+            // Check for target hits
             for (let j = this.targets.length - 1; j >= 0; j--) {
                 const target = this.targets[j];
-                if (bullet.position.distanceTo(target.position) < 1) {
-                    // Hit target
+                if (bullet.position.distanceTo(target.position) < 2) {
+                    this.sounds.hit.play();
                     this.scene.remove(target);
                     this.targets.splice(j, 1);
                     this.score += 10;
                     this.updateUI();
 
-                    // Play hit sound
-                    const hitSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-                    hitSound.volume = 0.3;
-                    hitSound.play();
-
-                    // Remove bullet
-                    this.scene.remove(bullet);
-                    this.bullets.splice(index, 1);
-                    return; // Exit inner loop to prevent issues with splice and continue outer loop
+                    if (this.targets.length === 0) {
+                        this.gameOver(true);
+                    }
+                    break;
                 }
             }
 
             // Remove bullets that are too far
             if (bullet.position.distanceTo(this.camera.position) > 100) {
                 this.scene.remove(bullet);
-                this.bullets.splice(index, 1);
+                this.bullets.splice(i, 1);
             }
-        });
-
-        if (this.targets.length === 0) {
-            this.gameOver(true);
         }
 
         this.prevTime = time;
