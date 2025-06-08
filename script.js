@@ -105,12 +105,13 @@ class FPSGame {
         // Create audio loader
         const audioLoader = new THREE.AudioLoader();
 
-        // Load sound files
-        audioLoader.load('https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3', (buffer) => {
+        // Load local gunshot sound
+        audioLoader.load('audio/GUNSHOT.mp3', (buffer) => {
             this.sounds.shoot.setBuffer(buffer);
             this.sounds.shoot.setVolume(0.5);
         });
 
+        // Load other sound effects
         audioLoader.load('https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3', (buffer) => {
             this.sounds.reload.setBuffer(buffer);
             this.sounds.reload.setVolume(0.5);
@@ -227,6 +228,22 @@ class FPSGame {
             });
         }
 
+        // Credits button functionality
+        document.getElementById('credits-btn').addEventListener('click', () => {
+            if (this.controls.isLocked) {
+                this.controls.unlock();
+            }
+            document.getElementById('credits-screen').classList.remove('hidden');
+        });
+
+        // Back button functionality
+        document.getElementById('back-btn').addEventListener('click', () => {
+            document.getElementById('credits-screen').classList.add('hidden');
+            if (!this.isGameOver) {
+                this.controls.lock();
+            }
+        });
+
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
@@ -256,9 +273,17 @@ class FPSGame {
             return;
         }
 
+        // Create a new audio instance for each shot to allow rapid-fire
+        const shootSound = new THREE.Audio(this.listener);
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('audio/GUNSHOT.mp3', (buffer) => {
+            shootSound.setBuffer(buffer);
+            shootSound.setVolume(0.5);
+            shootSound.play();
+        });
+
         this.ammo--;
         this.updateUI();
-        this.sounds.shoot.play();
 
         const bulletGeometry = new THREE.SphereGeometry(0.1);
         const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
