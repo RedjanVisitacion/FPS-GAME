@@ -110,5 +110,12 @@
 
     <!-- Custom JS -->
     <script src="script.js"></script>
+    <script>
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !this.isJumping) {
+            this.startJump();
+        }
+    });
+    </script>
 </body>
 </html> 

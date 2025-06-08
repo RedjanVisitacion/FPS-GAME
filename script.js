@@ -50,6 +50,25 @@ class FPSGame {
 
         // Start game loop
         this.animate();
+
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.isShooting = false;
+        this.shootInterval = null;
+        this.shootDelay = 100;
+        this.isJumping = false;
+        this.jumpHeight = 150;
+        this.jumpSpeed = 10;
+        this.originalY = 0;
+
+        // Add keyboard event listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !this.isJumping) {
+                this.startJump();
+            }
+        });
     }
 
     checkMobile() {
@@ -267,6 +286,23 @@ class FPSGame {
         }
     }
 
+    startShooting() {
+        if (!this.shootInterval) {
+            this.shootInterval = setInterval(() => {
+                if (this.isShooting) {
+                    this.shoot();
+                }
+            }, this.shootDelay);
+        }
+    }
+
+    stopShooting() {
+        if (this.shootInterval) {
+            clearInterval(this.shootInterval);
+            this.shootInterval = null;
+        }
+    }
+
     shoot() {
         if (this.ammo <= 0) {
             this.sounds.empty.play();
@@ -402,6 +438,39 @@ class FPSGame {
 
         this.prevTime = time;
         this.renderer.render(this.scene, this.camera);
+    }
+
+    startJump() {
+        if (!this.isJumping) {
+            this.isJumping = true;
+            this.originalY = this.camera.position.y;
+            this.jump();
+        }
+    }
+
+    stopJump() {
+        this.isJumping = false;
+    }
+
+    jump() {
+        if (this.isJumping) {
+            if (this.camera.position.y > this.originalY - this.jumpHeight) {
+                this.camera.position.y -= this.jumpSpeed;
+                requestAnimationFrame(() => this.jump());
+            } else {
+                this.fall();
+            }
+        }
+    }
+
+    fall() {
+        if (this.camera.position.y < this.originalY) {
+            this.camera.position.y += this.jumpSpeed;
+            requestAnimationFrame(() => this.fall());
+        } else {
+            this.camera.position.y = this.originalY;
+            this.isJumping = false;
+        }
     }
 }
 
