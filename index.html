@@ -117,6 +117,17 @@
             this.startJump();
         }
     });
+
+    // Mobile start button functionality
+    document.getElementById('mobile-start-btn').addEventListener('click', function() {
+        document.getElementById('start-screen').classList.add('hidden');
+        // Initialize mobile controls
+        document.getElementById('mobile-controls').classList.remove('d-none');
+        // Start the game
+        if (typeof startGame === 'function') {
+            startGame();
+        }
+    });
     </script>
 </body>
 </html> 
