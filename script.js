@@ -105,8 +105,8 @@ class FPSGame {
         // Create audio loader
         const audioLoader = new THREE.AudioLoader();
 
-        // Load local gunshot sound
-        audioLoader.load('audio/GUNSHOT.mp3', (buffer) => {
+        // Load gunshot sound from GitHub Pages
+        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/GUNSHOT.MP3', (buffer) => {
             this.sounds.shoot.setBuffer(buffer);
             this.sounds.shoot.setVolume(0.5);
         });
@@ -276,7 +276,7 @@ class FPSGame {
         // Create a new audio instance for each shot to allow rapid-fire
         const shootSound = new THREE.Audio(this.listener);
         const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('audio/GUNSHOT.mp3', (buffer) => {
+        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/GUNSHOT.MP3', (buffer) => {
             shootSound.setBuffer(buffer);
             shootSound.setVolume(0.5);
             shootSound.play();
