@@ -1,5 +1,6 @@
 class FPSGame {
     constructor() {
+        // Three.js setup
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer();
@@ -13,6 +14,12 @@ class FPSGame {
         this.isGameOver = false;
         this.targets = [];
         this.bullets = [];
+        this.isJumping = false;
+        this.jumpHeight = 2;
+        this.jumpSpeed = 0.1;
+        this.gravity = 0.05;
+        this.velocityY = 0;
+        this.originalY = 2; // Initial camera height
 
         // Movement
         this.moveForward = false;
@@ -25,18 +32,40 @@ class FPSGame {
         this.prevTime = performance.now();
 
         // Mobile controls
-        this.isMobile = this.checkMobile();
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         this.movementJoystick = null;
         this.lookJoystick = null;
-        this.touchControls = {
-            movement: { x: 0, y: 0 },
-            look: { x: 0, y: 0 }
+
+        // Audio setup
+        this.listener = new THREE.AudioListener();
+        this.camera.add(this.listener);
+        this.sounds = {
+            shoot: new THREE.Audio(this.listener),
+            hit: new THREE.Audio(this.listener),
+            reload: new THREE.Audio(this.listener),
+            empty: new THREE.Audio(this.listener)
         };
 
-        // Audio
-        this.setupAudio();
+        // Load sounds
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/GUNSHOT.MP3', (buffer) => {
+            this.sounds.shoot.setBuffer(buffer);
+            this.sounds.shoot.setVolume(0.5);
+        });
+        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/HIT.MP3', (buffer) => {
+            this.sounds.hit.setBuffer(buffer);
+            this.sounds.hit.setVolume(0.5);
+        });
+        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/RELOAD.MP3', (buffer) => {
+            this.sounds.reload.setBuffer(buffer);
+            this.sounds.reload.setVolume(0.5);
+        });
+        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/EMPTY.MP3', (buffer) => {
+            this.sounds.empty.setBuffer(buffer);
+            this.sounds.empty.setVolume(0.5);
+        });
 
-        // Setup
+        // Setup game elements
         this.setupScene();
         this.setupControls();
         this.setupEventListeners();
@@ -50,106 +79,6 @@ class FPSGame {
 
         // Start game loop
         this.animate();
-
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        this.isShooting = false;
-        this.shootInterval = null;
-        this.shootDelay = 100;
-        this.isJumping = false;
-        this.jumpHeight = 150;
-        this.jumpSpeed = 10;
-        this.originalY = 0;
-
-        // Add keyboard event listeners
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !this.isJumping) {
-                this.startJump();
-            }
-        });
-    }
-
-    checkMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-
-    setupMobileControls() {
-        // Movement joystick
-        this.movementJoystick = new VirtualJoystick({
-            container: document.getElementById('movement-joystick'),
-            color: 'white',
-            position: { left: '50%', top: '50%' },
-            mode: 'static',
-            size: 100
-        });
-
-        // Look joystick
-        this.lookJoystick = new VirtualJoystick({
-            container: document.getElementById('look-joystick'),
-            color: 'white',
-            position: { left: '50%', top: '50%' },
-            mode: 'static',
-            size: 100
-        });
-
-        // Shoot button
-        document.getElementById('shoot-btn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.shoot();
-        });
-
-        // Reload button
-        document.getElementById('reload-btn').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.reload();
-        });
-    }
-
-    setupAudio() {
-        // Create audio listener
-        this.listener = new THREE.AudioListener();
-        this.camera.add(this.listener);
-
-        // Load sound effects
-        this.sounds = {
-            shoot: new THREE.Audio(this.listener),
-            reload: new THREE.Audio(this.listener),
-            hit: new THREE.Audio(this.listener),
-            empty: new THREE.Audio(this.listener),
-            gameOver: new THREE.Audio(this.listener)
-        };
-
-        // Create audio loader
-        const audioLoader = new THREE.AudioLoader();
-
-        // Load gunshot sound from GitHub Pages
-        audioLoader.load('https://redjanvisitacion.github.io/FPS-GAME/audio/GUNSHOT.MP3', (buffer) => {
-            this.sounds.shoot.setBuffer(buffer);
-            this.sounds.shoot.setVolume(0.5);
-        });
-
-        // Load other sound effects
-        audioLoader.load('https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3', (buffer) => {
-            this.sounds.reload.setBuffer(buffer);
-            this.sounds.reload.setVolume(0.5);
-        });
-
-        audioLoader.load('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3', (buffer) => {
-            this.sounds.hit.setBuffer(buffer);
-            this.sounds.hit.setVolume(0.5);
-        });
-
-        audioLoader.load('https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3', (buffer) => {
-            this.sounds.empty.setBuffer(buffer);
-            this.sounds.empty.setVolume(0.5);
-        });
-
-        audioLoader.load('https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3', (buffer) => {
-            this.sounds.gameOver.setBuffer(buffer);
-            this.sounds.gameOver.setVolume(0.5);
-        });
     }
 
     setupScene() {
@@ -213,14 +142,7 @@ class FPSGame {
                     document.getElementById('start-screen').classList.remove('hidden');
                 }
             });
-        } else {
-            // Mobile camera setup
-            this.camera.position.y = 2;
-        }
-    }
 
-    setupEventListeners() {
-        if (!this.isMobile) {
             document.addEventListener('keydown', (event) => {
                 switch (event.code) {
                     case 'KeyW': this.moveForward = true; break;
@@ -228,6 +150,11 @@ class FPSGame {
                     case 'KeyA': this.moveLeft = true; break;
                     case 'KeyD': this.moveRight = true; break;
                     case 'KeyR': this.reload(); break;
+                    case 'Space': 
+                        if (!this.isJumping) {
+                            this.startJump();
+                        }
+                        break;
                 }
             });
 
@@ -246,16 +173,17 @@ class FPSGame {
                 }
             });
         }
+    }
 
+    setupEventListeners() {
         // Credits button functionality
         document.getElementById('credits-btn').addEventListener('click', () => {
-            if (this.controls.isLocked) {
+            document.getElementById('credits-screen').classList.remove('hidden');
+            if (this.controls) {
                 this.controls.unlock();
             }
-            document.getElementById('credits-screen').classList.remove('hidden');
         });
 
-        // Back button functionality
         document.getElementById('back-btn').addEventListener('click', () => {
             document.getElementById('credits-screen').classList.add('hidden');
             if (!this.isGameOver) {
@@ -263,10 +191,32 @@ class FPSGame {
             }
         });
 
-        window.addEventListener('resize', () => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            location.reload();
+        });
+    }
+
+    setupMobileControls() {
+        // Movement joystick
+        this.movementJoystick = new VirtualJoystick({
+            container: document.getElementById('movement-joystick'),
+            mouseSupport: true
+        });
+
+        // Look joystick
+        this.lookJoystick = new VirtualJoystick({
+            container: document.getElementById('look-joystick'),
+            mouseSupport: true
+        });
+
+        // Shoot button
+        document.getElementById('shoot-btn').addEventListener('click', () => {
+            this.shoot();
+        });
+
+        // Reload button
+        document.getElementById('reload-btn').addEventListener('click', () => {
+            this.reload();
         });
     }
 
@@ -283,23 +233,6 @@ class FPSGame {
             );
             this.scene.add(target);
             this.targets.push(target);
-        }
-    }
-
-    startShooting() {
-        if (!this.shootInterval) {
-            this.shootInterval = setInterval(() => {
-                if (this.isShooting) {
-                    this.shoot();
-                }
-            }, this.shootDelay);
-        }
-    }
-
-    stopShooting() {
-        if (this.shootInterval) {
-            clearInterval(this.shootInterval);
-            this.shootInterval = null;
         }
     }
 
@@ -324,7 +257,7 @@ class FPSGame {
         const bulletGeometry = new THREE.SphereGeometry(0.1);
         const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-
+        
         bullet.position.copy(this.camera.position);
         bullet.velocity = new THREE.Vector3();
         this.camera.getWorldDirection(bullet.velocity);
@@ -378,7 +311,35 @@ class FPSGame {
         this.controls.unlock();
         document.getElementById('game-over').classList.remove('hidden');
         document.getElementById('final-score').textContent = this.score;
-        this.sounds.gameOver.play();
+        
+        if (isWin) {
+            document.querySelector('#game-over h1').textContent = 'You Win!';
+        }
+    }
+
+    startJump() {
+        if (!this.isJumping) {
+            this.isJumping = true;
+            this.velocityY = this.jumpSpeed;
+            this.jump();
+        }
+    }
+
+    jump() {
+        if (this.isJumping) {
+            // Apply gravity
+            this.velocityY -= this.gravity;
+            this.camera.position.y += this.velocityY;
+
+            // Check if player has landed
+            if (this.camera.position.y <= this.originalY) {
+                this.camera.position.y = this.originalY;
+                this.velocityY = 0;
+                this.isJumping = false;
+            } else {
+                requestAnimationFrame(() => this.jump());
+            }
+        }
     }
 
     animate() {
@@ -439,42 +400,7 @@ class FPSGame {
         this.prevTime = time;
         this.renderer.render(this.scene, this.camera);
     }
-
-    startJump() {
-        if (!this.isJumping) {
-            this.isJumping = true;
-            this.originalY = this.camera.position.y;
-            this.jump();
-        }
-    }
-
-    stopJump() {
-        this.isJumping = false;
-    }
-
-    jump() {
-        if (this.isJumping) {
-            if (this.camera.position.y > this.originalY - this.jumpHeight) {
-                this.camera.position.y -= this.jumpSpeed;
-                requestAnimationFrame(() => this.jump());
-            } else {
-                this.fall();
-            }
-        }
-    }
-
-    fall() {
-        if (this.camera.position.y < this.originalY) {
-            this.camera.position.y += this.jumpSpeed;
-            requestAnimationFrame(() => this.fall());
-        } else {
-            this.camera.position.y = this.originalY;
-            this.isJumping = false;
-        }
-    }
 }
 
-// Initialize game when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    new FPSGame();
-}); 
+// Start the game
+const game = new FPSGame(); 
