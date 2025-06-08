@@ -24,6 +24,15 @@ class FPSGame {
         this.moveSpeed = 10.0;
         this.prevTime = performance.now();
 
+        // Mobile controls
+        this.isMobile = this.checkMobile();
+        this.movementJoystick = null;
+        this.lookJoystick = null;
+        this.touchControls = {
+            movement: { x: 0, y: 0 },
+            look: { x: 0, y: 0 }
+        };
+
         // Audio
         this.setupAudio();
 
@@ -33,8 +42,50 @@ class FPSGame {
         this.setupEventListeners();
         this.createTargets();
 
+        // Show mobile controls if on mobile
+        if (this.isMobile) {
+            document.getElementById('mobile-controls').classList.remove('d-none');
+            this.setupMobileControls();
+        }
+
         // Start game loop
         this.animate();
+    }
+
+    checkMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    setupMobileControls() {
+        // Movement joystick
+        this.movementJoystick = new VirtualJoystick({
+            container: document.getElementById('movement-joystick'),
+            color: 'white',
+            position: { left: '50%', top: '50%' },
+            mode: 'static',
+            size: 100
+        });
+
+        // Look joystick
+        this.lookJoystick = new VirtualJoystick({
+            container: document.getElementById('look-joystick'),
+            color: 'white',
+            position: { left: '50%', top: '50%' },
+            mode: 'static',
+            size: 100
+        });
+
+        // Shoot button
+        document.getElementById('shoot-btn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.shoot();
+        });
+
+        // Reload button
+        document.getElementById('reload-btn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.reload();
+        });
     }
 
     setupAudio() {
@@ -126,48 +177,55 @@ class FPSGame {
     }
 
     setupControls() {
-        this.controls = new THREE.PointerLockControls(this.camera, document.body);
-        
-        document.getElementById('start-screen').addEventListener('click', () => {
-            this.controls.lock();
-        });
+        if (!this.isMobile) {
+            this.controls = new THREE.PointerLockControls(this.camera, document.body);
+            
+            document.getElementById('start-screen').addEventListener('click', () => {
+                this.controls.lock();
+            });
 
-        this.controls.addEventListener('lock', () => {
-            document.getElementById('start-screen').classList.add('hidden');
-        });
+            this.controls.addEventListener('lock', () => {
+                document.getElementById('start-screen').classList.add('hidden');
+            });
 
-        this.controls.addEventListener('unlock', () => {
-            if (!this.isGameOver) {
-                document.getElementById('start-screen').classList.remove('hidden');
-            }
-        });
+            this.controls.addEventListener('unlock', () => {
+                if (!this.isGameOver) {
+                    document.getElementById('start-screen').classList.remove('hidden');
+                }
+            });
+        } else {
+            // Mobile camera setup
+            this.camera.position.y = 2;
+        }
     }
 
     setupEventListeners() {
-        document.addEventListener('keydown', (event) => {
-            switch (event.code) {
-                case 'KeyW': this.moveForward = true; break;
-                case 'KeyS': this.moveBackward = true; break;
-                case 'KeyA': this.moveLeft = true; break;
-                case 'KeyD': this.moveRight = true; break;
-                case 'KeyR': this.reload(); break;
-            }
-        });
+        if (!this.isMobile) {
+            document.addEventListener('keydown', (event) => {
+                switch (event.code) {
+                    case 'KeyW': this.moveForward = true; break;
+                    case 'KeyS': this.moveBackward = true; break;
+                    case 'KeyA': this.moveLeft = true; break;
+                    case 'KeyD': this.moveRight = true; break;
+                    case 'KeyR': this.reload(); break;
+                }
+            });
 
-        document.addEventListener('keyup', (event) => {
-            switch (event.code) {
-                case 'KeyW': this.moveForward = false; break;
-                case 'KeyS': this.moveBackward = false; break;
-                case 'KeyA': this.moveLeft = false; break;
-                case 'KeyD': this.moveRight = false; break;
-            }
-        });
+            document.addEventListener('keyup', (event) => {
+                switch (event.code) {
+                    case 'KeyW': this.moveForward = false; break;
+                    case 'KeyS': this.moveBackward = false; break;
+                    case 'KeyA': this.moveLeft = false; break;
+                    case 'KeyD': this.moveRight = false; break;
+                }
+            });
 
-        document.addEventListener('click', () => {
-            if (this.controls.isLocked) {
-                this.shoot();
-            }
-        });
+            document.addEventListener('click', () => {
+                if (this.controls.isLocked) {
+                    this.shoot();
+                }
+            });
+        }
 
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -265,20 +323,37 @@ class FPSGame {
     animate() {
         requestAnimationFrame(() => this.animate());
 
-        if (this.controls.isLocked) {
-            const time = performance.now();
-            const delta = (time - this.prevTime) / 1000;
+        const time = performance.now();
+        const delta = (time - this.prevTime) / 1000;
 
-            // Reset velocity
+        if (this.isMobile) {
+            // Handle mobile movement
+            if (this.movementJoystick) {
+                const movement = this.movementJoystick.delta();
+                this.velocity.x = movement.x * this.moveSpeed;
+                this.velocity.z = -movement.y * this.moveSpeed;
+            }
+
+            // Handle mobile look
+            if (this.lookJoystick) {
+                const look = this.lookJoystick.delta();
+                this.camera.rotation.y -= look.x * 0.01;
+                this.camera.rotation.x -= look.y * 0.01;
+                this.camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.camera.rotation.x));
+            }
+
+            // Apply movement
+            this.camera.position.x += this.velocity.x * delta;
+            this.camera.position.z += this.velocity.z * delta;
+        } else if (this.controls.isLocked) {
+            // Desktop movement
             this.velocity.x = 0;
             this.velocity.z = 0;
 
-            // Calculate movement direction
             this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
             this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
             this.direction.normalize();
 
-            // Apply movement
             if (this.moveForward || this.moveBackward) {
                 this.velocity.z = this.direction.z * this.moveSpeed;
             }
@@ -286,24 +361,21 @@ class FPSGame {
                 this.velocity.x = this.direction.x * this.moveSpeed;
             }
 
-            // Move the camera
             this.controls.moveRight(this.velocity.x * delta);
             this.controls.moveForward(this.velocity.z * delta);
-
-            // Update bullets
-            this.bullets.forEach((bullet, index) => {
-                bullet.position.add(bullet.velocity.clone().multiplyScalar(delta));
-                
-                // Remove bullets that are too far
-                if (bullet.position.distanceTo(this.camera.position) > 100) {
-                    this.scene.remove(bullet);
-                    this.bullets.splice(index, 1);
-                }
-            });
-
-            this.prevTime = time;
         }
 
+        // Update bullets
+        this.bullets.forEach((bullet, index) => {
+            bullet.position.add(bullet.velocity.clone().multiplyScalar(delta));
+            
+            if (bullet.position.distanceTo(this.camera.position) > 100) {
+                this.scene.remove(bullet);
+                this.bullets.splice(index, 1);
+            }
+        });
+
+        this.prevTime = time;
         this.renderer.render(this.scene, this.camera);
     }
 }

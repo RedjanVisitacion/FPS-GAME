@@ -2,12 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Simple FPS Game</title>
+    <link rel="icon" href="img/RPSV-ICON.png"/>
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Pointer Lock Controls -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <!-- Virtual Joystick -->
+    <script src="https://cdn.jsdelivr.net/npm/virtual-joystick@2.0.6/virtualjoystick.min.js"></script>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
@@ -19,19 +22,52 @@
         <div id="score">Score: <span id="score-value">0</span></div>
         <div id="health">Health: <span id="health-value">100</span></div>
         <div id="ammo">Ammo: <span id="ammo-value">30</span></div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls" class="d-none">
+            <!-- Movement Joystick -->
+            <div id="movement-joystick" class="joystick">
+                <div class="joystick-base">
+                    <div class="joystick-thumb"></div>
+                </div>
+            </div>
+
+            <!-- Look Joystick -->
+            <div id="look-joystick" class="joystick">
+                <div class="joystick-base">
+                    <div class="joystick-thumb"></div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div id="action-buttons">
+                <button id="shoot-btn" class="action-btn">Shoot</button>
+                <button id="reload-btn" class="action-btn">Reload</button>
+            </div>
+        </div>
     </div>
 
     <div id="start-screen" class="overlay">
         <div class="content">
             <h1>Simple FPS Game</h1>
             <p>Click to start</p>
-            <p class="instructions">
-                WASD - Move<br>
-                Mouse - Look<br>
-                Left Click - Shoot<br>
-                R - Reload<br>
-                ESC - Pause
-            </p>
+            <div class="instructions">
+                <div class="desktop-instructions d-none d-md-block">
+                    <p>Desktop Controls:</p>
+                    <p>WASD - Move<br>
+                    Mouse - Look<br>
+                    Left Click - Shoot<br>
+                    R - Reload<br>
+                    ESC - Pause</p>
+                </div>
+                <div class="mobile-instructions d-md-none">
+                    <p>Mobile Controls:</p>
+                    <p>Left Joystick - Move<br>
+                    Right Joystick - Look<br>
+                    Shoot Button - Shoot<br>
+                    Reload Button - Reload</p>
+                </div>
+            </div>
         </div>
     </div>
 

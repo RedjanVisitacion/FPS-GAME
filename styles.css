@@ -57,6 +57,7 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: Arial, sans-serif;
+    touch-action: none;
 }
 
 #game-container {
@@ -82,6 +83,7 @@ body {
     font-size: 18px;
     padding: 10px;
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    z-index: 100;
 }
 
 #score {
@@ -97,6 +99,83 @@ body {
 #ammo {
     bottom: 20px;
     right: 20px;
+}
+
+/* Mobile Controls */
+#mobile-controls {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.joystick {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    pointer-events: auto;
+}
+
+#movement-joystick {
+    bottom: 30px;
+    left: 30px;
+}
+
+#look-joystick {
+    bottom: 30px;
+    right: 30px;
+}
+
+.joystick-base {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.joystick-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#action-buttons {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    pointer-events: auto;
+}
+
+.action-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.action-btn:active {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .overlay {
@@ -116,10 +195,10 @@ body {
     text-align: center;
     color: white;
     padding: 20px;
+    max-width: 90%;
 }
 
 .instructions {
-    text-align: left;
     margin-top: 20px;
     line-height: 1.6;
 }
@@ -132,4 +211,49 @@ body {
     margin-top: 20px;
     padding: 10px 20px;
     font-size: 18px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #mobile-controls {
+        display: block !important;
+    }
+
+    .joystick {
+        width: 100px;
+        height: 100px;
+    }
+
+    .joystick-thumb {
+        width: 30px;
+        height: 30px;
+    }
+
+    .action-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 14px;
+    }
+
+    #score, #health, #ammo {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .joystick {
+        width: 80px;
+        height: 80px;
+    }
+
+    .joystick-thumb {
+        width: 25px;
+        height: 25px;
+    }
+
+    .action-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 12px;
+    }
 } 
