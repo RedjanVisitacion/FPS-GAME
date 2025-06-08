@@ -1,0 +1,135 @@
+.game-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 0 auto;
+    max-width: 600px;
+}
+
+.card {
+    aspect-ratio: 1;
+    background-color: #2196F3;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: scale(1.05);
+}
+
+.card.flipped {
+    transform: rotateY(180deg);
+    background-color: #fff;
+}
+
+.card.matched {
+    background-color: #4CAF50;
+    cursor: default;
+}
+
+.card-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #fff;
+    backface-visibility: hidden;
+}
+
+.card.flipped .card-content {
+    color: #333;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 24px;
+    pointer-events: none;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+#score, #health, #ammo {
+    position: absolute;
+    color: white;
+    font-size: 18px;
+    padding: 10px;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+#score {
+    top: 20px;
+    left: 20px;
+}
+
+#health {
+    top: 20px;
+    right: 20px;
+}
+
+#ammo {
+    bottom: 20px;
+    right: 20px;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.content {
+    text-align: center;
+    color: white;
+    padding: 20px;
+}
+
+.instructions {
+    text-align: left;
+    margin-top: 20px;
+    line-height: 1.6;
+}
+
+.hidden {
+    display: none;
+}
+
+.btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+} 
