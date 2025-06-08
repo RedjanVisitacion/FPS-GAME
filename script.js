@@ -379,6 +379,16 @@ class FPSGame {
                     this.isJumping = false;
                 }
             }
+
+            // Wall collision detection
+            const playerX = this.camera.position.x;
+            const playerZ = this.camera.position.z;
+            const wallLimit = 49; // Slightly less than 50 to prevent passing through
+
+            if (playerX > wallLimit) this.camera.position.x = wallLimit;
+            if (playerX < -wallLimit) this.camera.position.x = -wallLimit;
+            if (playerZ > wallLimit) this.camera.position.z = wallLimit;
+            if (playerZ < -wallLimit) this.camera.position.z = -wallLimit;
         }
 
         // Update bullets and check collisions
